@@ -54,8 +54,21 @@ void setup() {
 }
 
 void loop() {
+  // get active blocks from Pixy
+  pixy.ccc.getBlocks();
   
-
+  if (pixy.ccc.numBlocks)
+  {
+    pixyControl(); 
+  }
+  else // no object detected, go into reset state
+  {
+    userControl();
+    
+    panLoop.reset();
+    tiltLoop.reset();
+    pixy.setServos(panLoop.m_command, tiltLoop.m_command);
+  }
 }
 
 void userControl(){
@@ -108,16 +121,8 @@ void userControl(){
 
 
 void pixyControl(){
-  static int i = 0;
-  int j;
-  char buf[64]; 
-  int32_t panOffset, tiltOffset;
-  
-  // get active blocks from Pixy
-  pixy.ccc.getBlocks();
-  
-  if (pixy.ccc.numBlocks)
-  {        
+    int32_t panOffset, tiltOffset;
+       
     // calculate pan and tilt "errors" with respect to first object (blocks[0]), 
     // which is the biggest object (they are sorted by size).  
     panOffset = (int32_t)pixy.frameWidth/2 - (int32_t)pixy.ccc.blocks[0].m_x;
@@ -129,16 +134,17 @@ void pixyControl(){
   
     // set pan and tilt servos  
     pixy.setServos(panLoop.m_command, tiltLoop.m_command);
-  }  
-  else // no object detected, go into reset state
-  {
-    panLoop.reset();
-    tiltLoop.reset();
-    pixy.setServos(panLoop.m_command, tiltLoop.m_command);
-  }
 }
 
-void steerPID(){
+void drivePID() // This is the function used to control the steering of the rover under autonomous control
+{
+  
+}
+
+void steerPID() // This is the function used to control the steering of the rover under autonomous control
+{
+  int steer_pos = 90;
+  
   // Create integers for the object's center x-position
   int x_Pos = pixy.ccc.blocks[0].m_x; //Goes from 0 to 316
   
@@ -147,13 +153,19 @@ void steerPID(){
   
   // Error Dynamics Control PID
   int x_Pos_Err = x_Des - x_Pos;
+
+  // If statements to control steering motion regaurding pan error
+  if (x_Pos_Err < 0)
+  {
+  int steer_pos = steer_pos++;
+  }
   
-  if (x_Pos_Err < 0){
-  steer.write(++); 
+  if(x_Pos_Err > 0)
+  {
+  int steer_pos = steer_pos--;
   }
-  if(x_Pos_Err > 0){
-  steer.write(--);
-  }
+
+  steer.write(steer_pos);
 }
 
 void buzzer(){
